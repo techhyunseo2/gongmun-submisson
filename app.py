@@ -613,8 +613,8 @@ class Handler(BaseHTTPRequestHandler):
     def _archive(self, preview: bool) -> dict:
         """끝난 공문을 마감 월 폴더로 옮긴다.
 
-        기한도 행사일도 없는 문서는 오늘 달로 보낸다 — 정리를 눌렀는데
-        인박스에 그대로 남는 문서가 없게 한다.
+        기한도 행사일도 없는 문서는 접수한 달로, 접수일도 모르면 오늘 달로
+        보낸다 — 정리를 눌렀는데 인박스에 그대로 남는 문서가 없게 한다.
         """
         base, inbox = self.base, self.folder
         today = date.today()
@@ -713,6 +713,8 @@ def fold_groups(docs: list[dict]) -> list[dict]:
                 if not entry.get("deadline_context"):
                     source = next(m for m in members if m["deadline"] == deadlines[0])
                     entry["deadline_context"] = source.get("deadline_context") or ""
+        received = sorted({m["received_date"] for m in members if m.get("received_date")})
+        entry["received_date"] = received[0] if received else ""
         events = sorted({m["event_date"] for m in members if m.get("event_date")})
         entry["event_date"] = events[0] if events else None
         entry["all_dates"] = sorted({d for m in members for d in (m.get("all_dates") or [])})
@@ -741,14 +743,17 @@ def _pick_lead(members: list[dict]) -> dict:
 
 
 def _month_of(group: dict, today: date) -> int:
-    """어느 달 폴더로 보낼지 정한다. 마감 → 행사일 순으로 보고,
-    둘 다 없으면 오늘 달로 보낸다.
+    """어느 달 폴더로 보낼지 정한다. 마감 → 행사일 → 접수일 순으로 보고,
+    셋 다 없으면 오늘 달로 보낸다.
+
+    읽고 넘기는 안내 공문은 기한도 행사일도 없다. 그런 공문을 정리한 날의
+    달로 보내면 9월에 받은 안내가 11월 폴더에 섞인다. 받은 달이 맞다.
 
     예전에는 마지막으로 파일이 고쳐진 날짜(modified)를 봤는데, 옮기거나
     다시 저장할 때마다 이 날짜가 바뀌고, 받은 지 오래된 문서는 이미 지난
     달을 가리켜 정리를 눌러도 아무 데도 못 가고 인박스에 그대로 남았다.
     """
-    for key in ("deadline", "event_date"):
+    for key in ("deadline", "event_date", "received_date"):
         value = group.get(key)
         if value:
             try:

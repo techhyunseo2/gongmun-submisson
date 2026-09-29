@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS docs (
     group_key       TEXT DEFAULT '',
     role            TEXT DEFAULT '',
     receipt_number  TEXT DEFAULT '',
+    received_date   TEXT DEFAULT '',
     archived        TEXT DEFAULT '',
     deadline_edited INTEGER DEFAULT 0,
     readable        INTEGER DEFAULT 1,
@@ -97,6 +98,7 @@ class Store:
                                    ("group_key", "TEXT DEFAULT ''"),
                                    ("role", "TEXT DEFAULT ''"),
                                    ("receipt_number", "TEXT DEFAULT ''"),
+                                   ("received_date", "TEXT DEFAULT ''"),
                                    ("archived", "TEXT DEFAULT ''"),
                                    ("deadline_edited", "INTEGER DEFAULT 0"),
                                    ("readable", "INTEGER DEFAULT 1"),
@@ -188,8 +190,8 @@ class Store:
             """INSERT INTO docs (id, path, filename, modified, scanned_at, title, sender,
                                  doc_number, category, confidence, deadline, deadline_context,
                                  event_date, all_dates, summary, body, body_html,
-                                 group_key, role, receipt_number, error, readable)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                                 group_key, role, receipt_number, received_date, error, readable)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(id) DO UPDATE SET
                  path=excluded.path, filename=excluded.filename, scanned_at=excluded.scanned_at,
                  title=excluded.title, sender=excluded.sender, doc_number=excluded.doc_number,
@@ -201,6 +203,7 @@ class Store:
                  summary=excluded.summary, body=excluded.body,
                  body_html=excluded.body_html, group_key=excluded.group_key,
                  role=excluded.role, receipt_number=excluded.receipt_number,
+                 received_date=excluded.received_date,
                  error=excluded.error, readable=excluded.readable""",
             (
                 doc_id, str(path), path.name,
@@ -212,7 +215,8 @@ class Store:
                 json.dumps(result["all_dates"], ensure_ascii=False),
                 result["summary"], body[:20000], body_html[:120000],
                 result.get("group_key", ""), result.get("role", ""),
-                result.get("receipt_number", ""), error, 1 if readable else 0,
+                result.get("receipt_number", ""), result.get("received_date", ""),
+                error, 1 if readable else 0,
             ),
         )
 
@@ -351,7 +355,7 @@ def _blank(path: Path) -> dict:
     """분석하지 않은 파일의 빈 분석 결과."""
     return {
         "title": path.stem, "sender": "", "doc_number": "",
-        "receipt_number": "", "category": "other", "confidence": "낮음",
+        "receipt_number": "", "received_date": "", "category": "other", "confidence": "낮음",
         "deadline": None, "deadline_context": "", "event_date": None,
         "all_dates": [], "summary": "",
     }

@@ -12,6 +12,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -239,6 +240,30 @@ class DownloadedTwice(MixedFolder):
         one = self.inbox / "있다.txt"
         one.write_text("가", encoding="utf-8")
         self.assertFalse(organize.same_file_content(one, self.inbox / "없다.txt"))
+
+
+
+class MonthFolder(unittest.TestCase):
+    """완료된 업무를 어느 달 폴더로 보낼지."""
+
+    TODAY = date(2026, 11, 20)
+
+    def test_deadline_comes_first(self):
+        group = {"deadline": "2026-10-16", "event_date": "2026-11-14", "received_date": "2026-09-26"}
+        self.assertEqual(app._month_of(group, self.TODAY), 10)
+
+    def test_event_when_no_deadline(self):
+        group = {"deadline": None, "event_date": "2026-11-14", "received_date": "2026-09-26"}
+        self.assertEqual(app._month_of(group, self.TODAY), 11)
+
+    def test_received_date_when_nothing_else(self):
+        """읽고 넘기는 안내 공문은 정리한 달이 아니라 받은 달로 간다."""
+        group = {"deadline": None, "event_date": None, "received_date": "2026-09-16"}
+        self.assertEqual(app._month_of(group, self.TODAY), 9)
+
+    def test_today_as_the_last_resort(self):
+        group = {"deadline": None, "event_date": None, "received_date": ""}
+        self.assertEqual(app._month_of(group, self.TODAY), 11)
 
 
 if __name__ == "__main__":

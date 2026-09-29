@@ -19,6 +19,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import classify  # noqa: E402
 
+
+class ReceivedDate(unittest.TestCase):
+    """기한 없는 공문을 받은 달 폴더로 보내려면 접수일을 읽어야 한다."""
+
+    def test_reads_the_receipt_line(self):
+        text = "시행 교육과정과-6377 (2026. 9. 25.)  접수 OO중학교-5102 (2026. 9. 26.)"
+        self.assertEqual(classify.guess_received_date(text), "2026-09-26")
+
+    def test_ignores_the_enforcement_date(self):
+        self.assertEqual(classify.guess_received_date("시행 교육과정과-6377 (2026. 9. 25.)"), "")
+
+    def test_missing_or_broken_date_is_empty(self):
+        self.assertEqual(classify.guess_received_date("본문만 있는 문서"), "")
+        self.assertEqual(classify.guess_received_date("접수 OO중학교-5102 (2026. 13. 40.)"), "")
+
 BASE = date(2026, 9, 2)
 
 

@@ -310,6 +310,22 @@ def guess_receipt_number(text: str) -> str:
     return re.sub(r"\s+", "", match.group(1))[:40] if match else ""
 
 
+def guess_received_date(text: str) -> str:
+    """우리 학교가 접수한 날. 공문 아래 '접수 OO중학교-5102 (2026. 9. 26.)' 줄에서 읽는다.
+
+    기한도 행사일도 없는 공문을 월별 폴더로 보낼 때 쓴다. 없으면 빈 문자열.
+    """
+    match = re.search(
+        r"접\s*수\s+[가-힣A-Za-z]{2,15}\s*-\s*\d{2,7}\s*\(?\s*"
+        r"(20\d{2})\s*[.\-]\s*(\d{1,2})\s*[.\-]\s*(\d{1,2})", text)
+    if not match:
+        return ""
+    try:
+        return date(*map(int, match.groups())).isoformat()
+    except ValueError:
+        return ""
+
+
 def classify(title: str, body: str, has_deadline: bool, has_future_date: bool) -> tuple[str, dict[str, int]]:
     scores = {key: 0 for key in _RULES}
     head = body[:1500]
@@ -361,6 +377,7 @@ def analyze(title_fallback: str, body: str, base: date | None = None) -> dict:
         "sender": guess_sender(body),
         "doc_number": guess_doc_number(body),
         "receipt_number": guess_receipt_number(body),
+        "received_date": guess_received_date(body),
         "category": category,
         "confidence": confidence,
         "deadline": deadline.isoformat() if deadline else None,
