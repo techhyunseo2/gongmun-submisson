@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공문정리함제출</title>
+<style>
+  /* 글꼴은 프로그램 안에 함께 넣어 배포한다. 예전에는 외부 CDN 에서
+     받아 썼는데 (1) 실행할 때마다 이용자 IP 가 제3자에게 나가고
+     (2) 학교망이 CDN 을 막으면 글꼴이 조용히 바뀌었다.
+     Pretendard, SIL Open Font License 1.1 — 전문은 /assets/Pretendard-OFL.txt
+     또는 프로그램을 설치한 폴더의 THIRD-PARTY-NOTICES.txt 참고. */
+  @font-face{
+    font-family:"Pretendard Variable";
+    font-weight:45 920;
+    font-style:normal;
+    font-display:swap;
+    src:local("Pretendard Variable"),
+        url("/assets/PretendardVariable.woff2") format("woff2-variations");
+  }
+  :root{
+    --paper:#DDE1DC;
+    --card:#FBFBF8;
+    --ink:#16201B;
+    --ink-soft:#5C685F;
+    --rule:#C3CAC3;
+    --seal:#A6301F;
+    --seal-deep:#761E12;
+    --moss:#3C5A46;
+    --slate:#3A5560;
+    --ochre:#8A6A1F;
+    --shadow:0 18px 40px -22px rgba(20,32,26,.55);
+    --cat-submit:#A6301F;
+    --cat-event:#3A5560;
+    --cat-apply:#8A6A1F;
+    --cat-distribute:#3C5A46;
+    --cat-notice:#7B8480;
+    --cat-other:#A6ADA7;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer;background:none;border:none}
+  :focus-visible{outline:2px solid var(--slate);outline-offset:2px;border-radius:2px}
+
+  /* ---------------------------------------------------------- 머리말 */
+  header{
+    padding:22px 32px 16px; border-bottom:1px solid var(--rule);
+    display:flex; flex-wrap:wrap; gap:18px; align-items:baseline;
+  }
+  h1{margin:0; font-size:20px; font-weight:700; letter-spacing:-.02em}
+  .folder{
+    font-size:13px; color:var(--ink-soft); border-bottom:1px dashed var(--rule);
+    padding-bottom:1px; max-width:46ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .folder:hover{color:var(--ink);border-bottom-color:var(--ink)}
+  .tools{margin-left:auto; display:flex; gap:8px; align-items:center}
+  .tool{
+    font-size:13px; padding:6px 12px; border:1px solid var(--rule);
+    background:var(--card); border-radius:3px;
+  }
+  .tool:hover{border-color:var(--ink);}
+  .tool[data-busy="1"]{opacity:.5;pointer-events:none}
+
+  .headline{
+    padding:14px 32px; font-size:14px; color:var(--ink-soft);
+    display:flex; gap:20px; flex-wrap:wrap; align-items:center;
+  }
+  .headline b{color:var(--ink); font-weight:600}
+  .headline .alarm{color:var(--seal); font-weight:600}
+
+  /* ------------------------------------------------------------ 본체 */
+  main{display:grid; grid-template-columns:196px 1fr; gap:0; align-items:start}
+  nav{padding:4px 12px 40px 32px; position:sticky; top:0}
+  .filter{
+    display:flex; width:100%; align-items:center; gap:8px; padding:7px 10px 7px 8px;
+    border-radius:3px; font-size:14px; text-align:left;
+  }
+  .filter:hover{background:rgba(255,255,255,.55)}
+  .filter[aria-pressed="true"]{background:var(--card); box-shadow:inset 2px 0 0 var(--ink)}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .filter .n{margin-left:auto; font-variant-numeric:tabular-nums; color:var(--ink-soft); font-size:13px}
+  nav hr{border:none;border-top:1px solid var(--rule);margin:14px 4px}
+  .check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);padding:4px 8px}
+  #search{
+    width:100%; margin:10px 0 2px; padding:7px 10px; border:1px solid var(--rule);
+    background:var(--card); border-radius:3px; font-size:13px;
+  }
+
+  section.list{padding:4px 32px 80px 20px; min-width:0}
+
+  /* ----------------------------------------------------------- 눈금 */
+  .band{display:flex; align-items:center; gap:12px; margin:22px 0 8px}
+  .band:first-child{margin-top:0}
+  .band-name{font-size:13px; font-weight:600; letter-spacing:-.01em; white-space:nowrap}
+  .band-line{flex:1; height:1px; background:var(--rule)}
+  .band.past .band-name{color:var(--seal-deep)}
+  .band.past .band-line{background:var(--seal);opacity:.4}
+
+  /* ------------------------------------------------------------ 행 */
+  /* 마지막 두 칸은 유형표와 처리 단추. 글자 수가 달라도 세로줄이 맞도록
+     자리를 고정한다 — 들쭉날쭉하면 목록이 어수선해 보인다. */
+  .row{
+    display:grid; grid-template-columns:20px 58px 1fr 74px 30px; gap:12px;
+    align-items:baseline;
+    width:100%; text-align:left; background:var(--card); border:1px solid var(--rule);
+    border-left:3px solid var(--cat-other); border-radius:3px;
+    padding:10px 14px; margin-bottom:5px;
+  }
+  .row:hover{border-color:var(--ink-soft)}
+  .row[aria-selected="true"]{border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink)}
+  .row.done{opacity:.45}
+  .row.done .name{text-decoration:line-through}
+
+  .dday{
+    font-variant-numeric:tabular-nums; font-weight:700; font-size:16px;
+    letter-spacing:-.03em; color:var(--slate);
+  }
+  .dday.warn{color:var(--seal)}
+  .dday.none{font-weight:500; font-size:13px; color:var(--ink-soft)}
+  /* grid 칸은 기본이 min-width:auto 라 긴 글이 칸을 밀어낸다.
+     0 으로 두어야 유형표·처리 단추 자리가 지켜진다. */
+  .rowtext{min-width:0}
+  .name{font-weight:500; letter-spacing:-.01em; overflow-wrap:anywhere}
+  .meta{display:block; font-size:12.5px; color:var(--ink-soft); margin-top:2px;
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* 유형표 — 왼쪽 세로줄과 같은 색을 옅게 깔아 한눈에 짝지어 보이게 한다.
+     색만으로 뜻을 전하지 않는다(글자가 그대로 있다). 색을 구별하기
+     어려운 분에게도 읽히도록. */
+  .kind{
+    justify-self:end; align-self:center; font-size:11.5px; font-weight:500;
+    white-space:nowrap; border-radius:999px; padding:3px 9px; line-height:1.35;
+    color:var(--kind-ink, var(--ink-soft));
+    background:color-mix(in srgb, var(--kind-ink, var(--rule)) 12%, transparent);
+    border:1px solid color-mix(in srgb, var(--kind-ink, var(--rule)) 28%, transparent);
+  }
+  /* color-mix 를 모르는 판에서는 테두리와 글자색만으로도 읽힌다 */
+  @supports not (background: color-mix(in srgb, red 10%, transparent)){
+    .kind{background:var(--paper)}
+  }
+  /* 처리 단추 — 목록에서 바로 끝낸다. 열어 보지 않아도 되는 안내 공문이
+     많아, 한 건씩 열었다 닫는 일이 잦았다. */
+  .done-btn{
+    justify-self:end; align-self:center; width:26px; height:26px; border-radius:999px;
+    border:1px solid var(--rule); background:var(--paper); color:var(--ink-soft);
+    font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .done-btn:hover{border-color:var(--moss); background:var(--moss); color:var(--card)}
+  .row.done .done-btn{border-color:var(--moss); background:var(--moss); color:var(--card)}
+  .row.done .done-btn:hover{background:var(--paper); color:var(--ink-soft); border-color:var(--rule)}
+  .flag{font-size:11px; color:var(--ochre); margin-left:6px}
+
+  /* 고르기 */
+  .pick{
+    width:15px; height:15px; border:1px solid var(--rule); border-radius:2px;
+    background:var(--paper); align-self:center; position:relative; flex:none;
+  }
+  /* 보이는 네모는 15px 그대로 두고 누르는 자리만 23px 로 넓힌다.
+     좁으면 옆을 눌러 미리보기가 열려 버려서, 여러 건을 고를 때 번거롭다.
+     ::after 는 체크 표시가 쓰므로 여기서는 ::before 를 쓴다. */
+  .pick::before{content:"";position:absolute;inset:-4px}
+  .row:hover .pick{border-color:var(--ink-soft)}
+  .pick[aria-checked="true"]{background:var(--ink);border-color:var(--ink)}
+  .pick[aria-checked="true"]::after{
+    content:"✓"; position:absolute; inset:0; color:var(--card);
+    font-size:11px; line-height:15px; text-align:center;
+  }
+  /* 구간 단위로 고르는 단추. 점선 밑줄이라 링크처럼 보여 눌러 볼 생각을
+     못 하셨다. 유형표와 같은 알약 모양으로 맞춰 단추로 읽히게 하되,
+     테두리만 두고 배경은 종이색이라 목록보다 앞으로 튀지 않는다. */
+  .bandpick{
+    font-size:11.5px; color:var(--ink-soft); white-space:nowrap;
+    border:1px solid var(--rule); border-radius:999px; padding:3px 10px;
+    background:var(--card); line-height:1.35; flex:none;
+  }
+  .bandpick:hover{color:var(--ink); border-color:var(--ink-soft); background:var(--paper)}
+  .bandpick[aria-pressed="true"]{
+    background:var(--ink); color:var(--card); border-color:var(--ink);
+  }
+  .bandpick[aria-pressed="true"]:hover{background:var(--moss); border-color:var(--moss)}
+  .picked{
+    position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:10px;
+    background:var(--ink); color:var(--card); border-radius:3px;
+    padding:9px 14px; margin-bottom:10px; font-size:13.5px;
+  }
+  .picked b{font-weight:600}
+  .picked .act{
+    margin-left:auto; display:flex; gap:6px;
+  }
+  .picked .act button{
+    border:1px solid rgba(251,251,248,.35); border-radius:3px; padding:5px 11px;
+    color:var(--card); font-size:13px;
+  }
+  .picked .act button:hover{background:rgba(251,251,248,.14);border-color:var(--card)}
+  .picked .act .go{background:var(--card);color:var(--ink);border-color:var(--card)}
+  .picked .act .go:hover{background:#fff}
+  .sweep{
+    font-size:13px; color:var(--seal); border-bottom:1px dashed var(--rule);
+    padding-bottom:1px; font-weight:500;
+  }
+  .sweep:hover{border-bottom-color:var(--seal)}
+  .sweep.quiet{color:var(--ink-soft);font-weight:400}
+  .sweep.quiet:hover{color:var(--ink);border-bottom-color:var(--ink)}
+
+  .empty{
+    border:1px dashed var(--rule); border-radius:3px; padding:34px 24px;
+    text-align:center; color:var(--ink-soft); font-size:14px; background:rgba(251,251,248,.5);
+  }
+  .empty b{display:block;color:var(--ink);font-weight:600;margin-bottom:6px;font-size:15px}
+
+  /* ---------------------------------------------------------- 상세 */
+  /* 겹침 순서. 고른 건수를 알리는 검은 막대(.picked, 5)보다 미리보기
+     패널이 위에 와야 한다. 공문 내용을 보면서 고르는 흐름이라, 막대가
+     내용을 가리면 읽을 수가 없다. 토스트는 패널 위에서도 보여야 한다. */
+  .scrim{position:fixed;inset:0;z-index:10;background:rgba(22,32,27,.28);opacity:0;pointer-events:none;transition:opacity .18s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  aside{
+    position:fixed; top:0; right:0; height:100%; width:min(480px,92vw); z-index:11;
+    background:var(--card); border-left:1px solid var(--rule); box-shadow:var(--shadow);
+    transform:translateX(100%); transition:transform .22s ease; overflow-y:auto; padding:26px 28px 60px;
+  }
+  aside.open{transform:none}
+  @media (prefers-reduced-motion:reduce){aside,.scrim{transition:none}}
+  aside h2{margin:0 34px 4px 0; font-size:17px; font-weight:700; letter-spacing:-.02em; line-height:1.4}
+  .close{position:absolute;top:20px;right:22px;font-size:20px;color:var(--ink-soft);line-height:1}
+  .sub{font-size:13px;color:var(--ink-soft);margin-bottom:20px}
+  .field{margin:18px 0}
+  .field > label{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    font-size:12.5px; color:var(--ink-soft); margin-bottom:6px;
+  }
+  .field > label > span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--rule);border-radius:3px;padding:5px 9px;font-size:12.5px;background:var(--paper)}
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+  .field input[type=date],.field textarea{
+    width:100%;border:1px solid var(--rule);border-radius:3px;padding:8px 10px;background:var(--paper);
+  }
+  .field textarea{min-height:64px;resize:vertical}
+  .dates{display:flex;flex-wrap:wrap;gap:6px}
+  .datechip{
+    font-size:12.5px; border:1px solid var(--rule); border-radius:3px; padding:5px 9px;
+    font-variant-numeric:tabular-nums; background:var(--paper); cursor:pointer;
+  }
+  .datechip:hover{border-color:var(--ink)}
+  .datechip[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+  .hint{font-size:11.5px;color:var(--ink-soft);font-weight:400;flex:none}
+  .quote{
+    border-left:2px solid var(--seal); padding:6px 0 6px 12px; font-size:13px;
+    color:var(--ink-soft); margin-top:8px;
+  }
+  .body{
+    white-space:pre-wrap; font-size:13px; line-height:1.7; color:var(--ink-soft);
+    max-height:280px; overflow:auto; border:1px solid var(--rule); border-radius:3px;
+    padding:12px 14px; background:var(--paper);
+  }
+  /* 서식 보기 — hwpx 리더가 만든 구조 */
+  .body.formatted{white-space:normal; color:var(--ink); background:var(--card); padding:16px 18px; max-height:400px}
+  /* 문서 그대로 보기 — 한글 문서 안에 든 첫 쪽 그림, PDF 는 브라우저 뷰어.
+     그림을 못 꺼내면 .noimg 가 붙어 글자 미리보기로 물러난다. */
+  .pagewrap{
+    border:1px solid var(--rule); border-radius:3px; background:var(--paper);
+    max-height:440px; overflow:auto; text-align:center;
+  }
+  .pagewrap .pageview{display:block; width:100%; height:auto; background:#fff; cursor:zoom-in}
+  .pagewrap .pagefallback{display:none}
+  .pagewrap.noimg{max-height:none; border:0; background:none}
+  .pagewrap.noimg .pageview{display:none}
+  .pagewrap.noimg .pagefallback{display:block}
+  .pdfview{
+    width:100%; height:440px; border:1px solid var(--rule); border-radius:3px;
+    background:var(--paper); display:block;
+  }
+  .pagenote{color:var(--ink-soft); font-size:11.5px; margin-top:6px; text-align:left}
+  /* 크게 보기 — 미리보기 그림을 누르면 화면 가운데에 띄운다.
+     패널은 480px 인데 그림 원본은 724px 라, 패널 안에서 키우면 가로로
+     밀어 가며 읽어야 한다. 겹침은 패널(11)보다 위, 알림(20)보다 아래. */
+  .zoomview{
+    position:fixed; inset:0; z-index:15; display:flex; cursor:zoom-out;
+    align-items:center; justify-content:center; padding:24px;
+    background:rgba(22,32,27,.72);
+  }
+  /* class 규칙이 hidden 속성의 기본 스타일을 이긴다. 이 줄이 없으면
+     확대창이 처음부터 화면을 덮은 채로 뜬다. */
+  .zoomview[hidden]{display:none}
+  .zoomview img{
+    /* 원본(724px)보다 크게 늘리지 않는다. 늘려 봐야 글씨만 뭉갠다. */
+    max-width:min(724px, 94vw); max-height:94vh; width:auto; height:auto;
+    background:#fff; box-shadow:var(--shadow); border-radius:2px;
+  }
+  .body .hx-p{margin:0 0 .38em; line-height:1.65}
+  .body .hx-p:last-child{margin-bottom:0}
+  .body .hx-center{text-align:center}
+  .body .hx-right{text-align:right}
+  .body .hx-tab{display:inline-block;width:1.6em}
+  .body .hx-obj{color:var(--ink-soft);font-size:12px}
+  .body .hx-table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:12.5px}
+  .body .hx-table th,.body .hx-table td{
+    border:1px solid var(--rule); padding:5px 8px; vertical-align:top; text-align:left;
+  }
+  .body .hx-table th{background:var(--paper);font-weight:600;color:var(--ink)}
+  .files{display:flex;flex-direction:column;gap:4px}
+  .filerow{
+    display:flex; align-items:baseline; gap:8px; width:100%; text-align:left;
+    border:1px solid var(--rule); border-radius:3px; padding:7px 10px;
+    background:var(--paper); font-size:13px; cursor:pointer;
+  }
+  .filerow:hover{border-color:var(--ink)}
+  .filerow[aria-pressed="true"]{background:var(--card);box-shadow:inset 2px 0 0 var(--ink)}
+  .filerow .tag{
+    font-size:11px; color:var(--card); background:var(--ink-soft);
+    border-radius:2px; padding:1px 5px; flex:none;
+  }
+  .filerow .tag.body{background:var(--slate)}
+  .filerow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .filerow .bad{color:var(--seal);font-size:11.5px;margin-left:auto;flex:none}
+  .filerow .plain{color:var(--ink-soft);font-size:11.5px;margin-left:auto;flex:none}
+  .body .hx-sheet{
+    font-weight:600; font-size:12.5px; color:var(--ink); margin:14px 0 4px;
+    padding-bottom:3px; border-bottom:1px solid var(--rule);
+  }
+  .body .hx-sheet:first-child{margin-top:0}
+  .clip{font-size:12px;color:var(--ink-soft);margin-left:6px}
+  .viewswitch{flex:none;font-size:12px;color:var(--ink-soft);border-bottom:1px dashed var(--rule)}
+  .viewswitch:hover{color:var(--ink);border-bottom-color:var(--ink)}
+  .actions{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
+  .primary{background:var(--ink);color:var(--card);border-radius:3px;padding:9px 16px;font-size:14px}
+  .primary:hover{background:var(--moss)}
+  .ghost{border:1px solid var(--rule);border-radius:3px;padding:9px 16px;font-size:14px}
+  .ghost:hover{border-color:var(--ink)}
+  .warnbox{border:1px solid var(--seal);border-radius:3px;padding:10px 12px;font-size:13px;color:var(--seal-deep)}
+
+  #toast{
+    position:fixed; left:50%; bottom:28px; z-index:20; transform:translate(-50%,14px);
+    background:var(--ink); color:var(--card); padding:9px 18px; border-radius:3px;
+    font-size:13.5px; opacity:0; pointer-events:none; transition:opacity .16s,transform .16s;
+    /* 되돌리기 단추를 옆에 세우려고 flex 로 둔다. 폴더 정리 결과처럼 긴
+       알림은 화면을 넘지 않도록 폭을 묶고 줄을 바꾼다. */
+    display:flex; align-items:center; gap:14px; max-width:min(620px, 90vw);
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  /* 되돌리기가 붙었을 때만 누를 수 있게 한다. 평소에는 알림이 클릭을
+     가로채지 않아야 뒤에 있는 목록을 그대로 쓸 수 있다. */
+  #toast.actionable{pointer-events:auto}
+  #toast .undo{
+    flex:none; color:var(--card); font-size:13px; font-weight:600;
+    border:1px solid rgba(251,251,248,.45); border-radius:999px; padding:2px 12px;
+  }
+  #toast .undo:hover{background:var(--card); color:var(--ink); border-color:var(--card)}
+  #toast .undo .key{font-weight:400; opacity:.7; margin-left:6px; font-size:11.5px}
+
+  /* 잘린 글의 전문을 띄우는 쪽지. 자리를 잡는 일은 JS 가 한다 —
+     화면 끝에 닿으면 반대쪽으로 넘겨야 하는데 CSS 로는 알 수 없다.
+     알림(20)보다 위에 둔다. 알림이 떠 있을 때도 읽을 수 있어야 한다. */
+  #peek{
+    position:fixed; z-index:22; max-width:min(460px, 82vw);
+    background:var(--ink); color:var(--card); padding:8px 12px; border-radius:3px;
+    font-size:13px; line-height:1.5; pointer-events:none; opacity:0;
+    transition:opacity .12s; box-shadow:var(--shadow); overflow-wrap:anywhere;
+  }
+  #peek.show{opacity:1}
+  #peek[hidden]{display:none}
+
+  @media (max-width:820px){
+    header,.headline{padding-left:20px;padding-right:20px}
+    main{grid-template-columns:1fr}
+    nav{position:static;padding:0 20px 8px;display:flex;flex-wrap:wrap;gap:4px}
+    nav hr,#search{display:none}
+    section.list{padding:8px 20px 80px}
+    .row{grid-template-columns:20px 52px 1fr;gap:10px}
+    .kind{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>공문정리함제출</h1>
+  <button class="folder" id="folder" data-peek title="폴더 열기">폴더를 읽는 중</button>
+  <div class="tools">
+    <button class="tool" id="rescan">다시 훑기</button>
+    <button class="tool" id="deep">전체 재분석</button>
+    <button class="tool" id="tidy">폴더 정리</button>
+    <button class="tool" id="archive">완료된 업무 정리</button>
+    <button class="tool" id="setfolder">폴더 바꾸기</button>
+  </div>
+</header>
+
+<p class="headline" id="headline"></p>
+
+<main>
+  <nav id="nav"></nav>
+  <section class="list" id="list"></section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside id="panel" aria-hidden="true"></aside>
+<div class="zoomview" id="zoom" hidden><img alt="크게 본 미리보기"></div>
+<div id="toast"></div>
+<div id="peek" role="tooltip" hidden></div>
+
+<script>
+const CAT_COLOR = {
+  submit:"var(--cat-submit)", event:"var(--cat-event)", apply:"var(--cat-apply)",
+  distribute:"var(--cat-distribute)", notice:"var(--cat-notice)", other:"var(--cat-other)"
+};
+const BANDS = [
+  {key:"past",  name:"기한 지남",   test:d => d.days_left !== null && d.days_left < 0,  past:true},
+  {key:"now",   name:"오늘·내일",   test:d => d.days_left !== null && d.days_left <= 1},
+  {key:"week",  name:"이번 주",     test:d => d.days_left !== null && d.days_left <= 7},
+  {key:"month", name:"한 달 안",    test:d => d.days_left !== null && d.days_left <= 31},
+  {key:"later", name:"그 이후",     test:d => d.days_left !== null},
+  {key:"dated", name:"날짜만 있음", test:d => !!d.event_date},
+  {key:"open",  name:"기한 없음",   test:() => true}
+];
+
+let state = null;
+let filter = "all";
+let showDone = false;
+let keyword = "";
+let selected = null;
+
+const $ = id => document.getElementById(id);
+
+/* ------------------------------------------------------------- 통신 */
+const POLL_MS = 4000;
+let lastRev = -1;          // 지금 화면에 그려져 있는 내용의 번호
+
+async function call(url, body){
+  const res = await fetch(url, body ? {
+    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+  } : undefined);
+  const data = await res.json();
+  // 응답이 상태를 담고 있으면 번호를 따라간다. 뒤늦게 도착한 옛 응답이
+  // 번호를 되돌리지 않도록 올라가기만 한다.
+  if (data && typeof data.rev === "number" && data.rev > lastRev) lastRev = data.rev;
+  return data;
+}
+
+/* 위젯이나 다른 탭에서 고친 것을 따라잡는다.
+   번호만 물어보고 달라졌을 때만 전체를 받아 온다. */
+function busy(){
+  if (document.hidden) return true;                 // 안 보고 있는 탭
+  const el = document.activeElement;
+  if (!el) return false;
+  // 검색창·메모·기한칸에 커서가 있으면 그대로 둔다. 다시 그리면 그 칸이
+  // 새로 만들어져 입력하던 내용과 커서가 날아간다.
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA";
+}
+
+async function poll(){
+  if (!state || busy()) return;
+  let rev;
+  try { rev = (await (await fetch("/api/rev")).json()).rev; }
+  catch(e){ return; }                               // 서버가 잠깐 없다. 다음 차례에
+  if (typeof rev !== "number") return;
+  if (rev < lastRev) lastRev = -1;                  // 서버가 다시 떠서 번호가 되감겼다
+  if (rev === lastRev) return;
+
+  const seen = lastRev;
+  let fresh;
+  try { fresh = await call("/api/state"); }
+  catch(e){ return; }
+  if (typeof fresh.rev !== "number" || fresh.rev < seen) return;   // 지나간 응답은 버린다
+  state = fresh;
+  render();
+}
+/* 알림. undo 를 주면 "되돌리기" 를 함께 달고 조금 더 오래 머문다.
+
+실수로 처리 단추를 눌렀을 때 되돌리는 길이 멀었다 — "처리한 것도 보기"
+를 켜고, 목록에서 그 공문을 다시 찾고, 열어서 맨 아래 단추를 눌러야
+했다. 되돌릴 자리는 실수한 바로 그 자리여야 한다. */
+let _undo = null;            // 마지막으로 되돌릴 수 있는 일 (Ctrl+Z 도 이걸 쓴다)
+
+function toast(text, undo){
+  const el = $("toast");
+  clearTimeout(el._t);
+  el.textContent = "";
+  el.append(text);
+  el.classList.toggle("actionable", !!undo);
+  _undo = undo || null;
+
+  if (undo){
+    const btn = document.createElement("button");
+    btn.className = "undo";
+    btn.innerHTML = `되돌리기<span class="key">Ctrl+Z</span>`;
+    btn.onclick = () => runUndo();
+    el.append(btn);
+  }
+  el.classList.add("show");
+  // 되돌릴 것이 있으면 읽고 누를 틈을 준다
+  el._t = setTimeout(() => {
+    el.classList.remove("show", "actionable");
+    _undo = null;
+  }, undo ? 7000 : 2200);
+}
+
+async function runUndo(){
+  const undo = _undo;
+  if (!undo) return;
+  _undo = null;
+  const el = $("toast");
+  clearTimeout(el._t);
+  el.classList.remove("show", "actionable");
+  await undo();
+}
+
+/* --------------------------------------------------- 잘린 글 들여다보기
+
+자리가 모자라 "…" 로 잘린 글은 전문을 볼 길이 있어야 한다. 마우스를
+올리면 쪽지가 뜨는데, 화면 끝에 닿으면 반대쪽으로 넘겨 잘리지 않게 한다.
+
+브라우저 기본 title 풍선을 쓰지 않는 이유: 뜨기까지 1초 넘게 걸리고,
+길면 제멋대로 줄을 바꾸며, 화면 끝에서 잘린다. 무엇보다 어디에 뜰지
+우리가 정할 수 없다.
+*/
+const PEEK_GAP = 10;          // 글자와 쪽지 사이
+const PEEK_EDGE = 8;          // 화면 가장자리에 남길 여백
+
+function _isClipped(el){
+  // CSS 로 잘린 것(...)과 우리가 잘라 넣은 것 둘 다 잡는다
+  if (el.dataset.full) return el.dataset.full !== el.textContent;
+  return el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+}
+
+function showPeek(el){
+  const full = el.dataset.full || el.textContent;
+  if (!full || !full.trim()) return;
+  const peek = $("peek");
+  peek.textContent = full;
+  peek.hidden = false;
+  peek.classList.remove("show");
+
+  // 크기를 알아야 자리를 정할 수 있으므로 일단 그려 두고 잰다
+  peek.style.left = "0px";
+  peek.style.top = "0px";
+  const box = el.getBoundingClientRect();
+  const size = peek.getBoundingClientRect();
+  const room = {w: document.documentElement.clientWidth,
+                h: document.documentElement.clientHeight};
+
+  // 위아래: 아래가 좁으면 위로 넘긴다
+  let top = box.bottom + PEEK_GAP;
+  if (top + size.height > room.h - PEEK_EDGE){
+    const above = box.top - size.height - PEEK_GAP;
+    top = above >= PEEK_EDGE ? above
+        : Math.max(PEEK_EDGE, room.h - PEEK_EDGE - size.height);
+  }
+  // 좌우: 글자 왼쪽에 맞추되 오른쪽 벽을 넘으면 밀어 넣는다
+  let left = box.left;
+  if (left + size.width > room.w - PEEK_EDGE) left = room.w - PEEK_EDGE - size.width;
+  if (left < PEEK_EDGE) left = PEEK_EDGE;
+
+  peek.style.left = `${Math.round(left)}px`;
+  peek.style.top = `${Math.round(top)}px`;
+  peek.classList.add("show");
+}
+
+function hidePeek(){
+  const peek = $("peek");
+  peek.classList.remove("show");
+  peek.hidden = true;
+}
+
+// 잘린 글은 어디에 있든(목록·패널·머리말) 같은 방식으로 들여다본다.
+// 붙였다 뗐다 하지 않도록 문서 전체에서 한 번만 받는다.
+document.addEventListener("mouseover", e => {
+  const el = e.target.closest("[data-peek]");
+  if (!el) return;
+  if (_isClipped(el)) showPeek(el);
+});
+document.addEventListener("mouseout", e => {
+  if (e.target.closest("[data-peek]")) hidePeek();
+});
+// 글자에 초점이 가도(키보드로 훑을 때) 같이 보여 준다
+document.addEventListener("focusin", e => {
+  const el = e.target.closest("[data-peek]");
+  if (el && _isClipped(el)) showPeek(el);
+});
+document.addEventListener("focusout", hidePeek);
+window.addEventListener("scroll", hidePeek, true);
+
+/* ------------------------------------------------------------- 그리기 */
+function visible(){
+  return state.docs.filter(d => {
+    if (!showDone && d.done) return false;
+    if (filter !== "all" && d.category !== filter) return false;
+    if (keyword){
+      const hay = (d.title + d.filename + (d.sender||"") + (d.memo||"")).toLowerCase();
+      if (!hay.includes(keyword)) return false;
+    }
+    return true;
+  });
+}
+
+function render(){
+  const cats = state.categories, order = state.order;
+
+  /* 머리말 */
+  const todo = state.docs.filter(d => !d.done).length;
+  const [, mm, dd] = state.today.split("-");
+  const bits = [`오늘 ${+mm}월 ${+dd}일`, `처리할 것 <b>${todo}건</b>`];
+  if (state.urgent) bits.push(`<span class="alarm">사흘 안 마감 ${state.urgent}건</span>`);
+  const overdue = state.docs.filter(d => !d.done && d.days_left !== null && d.days_left < 0);
+  if (overdue.length) bits.push(`<button class="sweep" id="sweep">기한 지난 ${overdue.length}건 모두 고르기</button>`);
+
+  const onScreen = visible();
+  const allPicked = onScreen.length > 0 && onScreen.every(d => chosen.has(d.id));
+  if (onScreen.length) bits.push(
+    `<button class="sweep quiet" id="pickall">${allPicked ? "모두 해제" : "모두 고르기"}</button>`);
+
+  $("headline").innerHTML = bits.join(" · ");
+
+  const sweep = $("sweep");
+  if (sweep) sweep.onclick = () => {
+    overdue.forEach(d => chosen.add(d.id));
+    render();
+  };
+  const pickall = $("pickall");
+  if (pickall) pickall.onclick = () => {
+    onScreen.forEach(d => allPicked ? chosen.delete(d.id) : chosen.add(d.id));
+    render();
+  };
+  $("folder").textContent = state.folder;
+
+  /* 왼쪽 */
+  const nav = $("nav");
+  const total = state.docs.filter(d => !d.done).length;
+  let html = `<button class="filter" data-cat="all" aria-pressed="${filter==="all"}">
+      <span class="dot" style="background:var(--ink)"></span>전체<span class="n">${total}</span></button>`;
+  for (const key of order){
+    html += `<button class="filter" data-cat="${key}" aria-pressed="${filter===key}">
+      <span class="dot" style="background:${CAT_COLOR[key]}"></span>${cats[key]}
+      <span class="n">${state.counts[key]||0}</span></button>`;
+  }
+  html += `<hr><label class="check"><input type="checkbox" id="donebox" ${showDone?"checked":""}> 처리한 것도 보기</label>
+           <input id="search" type="search" placeholder="제목·기관 검색" value="${keyword.replace(/"/g,"&quot;")}">`;
+  nav.innerHTML = html;
+
+  nav.querySelectorAll(".filter").forEach(btn =>
+    btn.onclick = () => { filter = btn.dataset.cat; render(); });
+  $("donebox").onchange = e => { showDone = e.target.checked; render(); };
+  const search = $("search");
+  search.oninput = e => { keyword = e.target.value.trim().toLowerCase(); renderList(); };
+
+  renderList();
+}
+
+function renderList(){
+  const alive = new Set(state.docs.map(d => d.id));
+  [...chosen].forEach(id => { if (!alive.has(id)) chosen.delete(id); });
+  const docs = visible();
+  const list = $("list");
+  if (!docs.length){
+    list.innerHTML = state.docs.length
+      ? `<div class="empty"><b>여기에 해당하는 공문이 없습니다</b>다른 유형을 눌러 보거나 검색어를 지워 보세요.</div>`
+      : `<div class="empty"><b>아직 읽은 공문이 없습니다</b>공문 파일을 폴더에 넣고 다시 훑기를 누르면 여기에 정리됩니다.</div>`;
+    return;
+  }
+
+  const buckets = new Map(BANDS.map(b => [b.key, []]));
+  const pinned = [];
+  const done = [];
+  for (const doc of docs){
+    if (doc.pinned && !doc.done){ pinned.push(doc); continue; }
+    if (doc.done){ done.push(doc); continue; }
+    for (const band of BANDS){
+      if (band.test(doc)){ buckets.get(band.key).push(doc); break; }
+    }
+  }
+
+  let html = _pickedBar();
+  if (pinned.length){
+    const allPicked = pinned.every(d => chosen.has(d.id));
+    html += `<div class="band"><span class="band-name">📌 고정</span><span class="band-line"></span>
+      <button class="bandpick" data-band="pinned" aria-pressed="${allPicked}"
+        >${allPicked ? "모두 해제" : "이 구간 모두"}</button></div>`;
+    html += pinned.map(row).join("");
+  }
+  for (const band of BANDS){
+    const group = buckets.get(band.key);
+    if (!group.length) continue;
+    const allPicked = group.every(d => chosen.has(d.id));
+    html += `<div class="band ${band.past?"past":""}">
+      <span class="band-name">${band.name}</span><span class="band-line"></span>
+      <button class="bandpick" data-band="${band.key}" aria-pressed="${allPicked}"
+        >${allPicked ? "모두 해제" : "이 기간 모두"}</button></div>`;
+    html += group.map(row).join("");
+  }
+  if (done.length){
+    const allDone = done.every(d => chosen.has(d.id));
+    html += `<div class="band"><span class="band-name">처리함</span><span class="band-line"></span>
+      <button class="bandpick" data-band="done" aria-pressed="${allDone}"
+        >${allDone ? "모두 해제" : "이 구간 모두"}</button></div>`;
+    html += done.map(row).join("");
+  }
+  list.innerHTML = html;
+  list.querySelectorAll(".row").forEach(el => el.onclick = () => openPanel(el.dataset.id));
+  list.querySelectorAll(".pick").forEach(el => el.onclick = event => {
+    event.stopPropagation();
+    const id = el.parentElement.dataset.id;
+    chosen.has(id) ? chosen.delete(id) : chosen.add(id);
+    render();
+  });
+  // 목록에서 바로 처리하기. 줄 전체가 미리보기를 여는 단추이므로
+  // stopPropagation 이 없으면 처리하면서 패널까지 열린다.
+  list.querySelectorAll(".done-btn").forEach(el => {
+    const finish = async event => {
+      event.stopPropagation();
+      const doc = state.docs.find(d => d.id === el.parentElement.dataset.id);
+      if (!doc) return;
+      const was = doc.done;
+      const members = (doc.members || []).map(m => m.id);
+      state = await call("/api/done", {id: doc.id, done: !was, members});
+      toast(was ? "다시 처리할 것으로 옮겼습니다." : "처리함으로 옮겼습니다.",
+            async () => {
+              state = await call("/api/done", {id: doc.id, done: was, members});
+              toast(was ? "처리함으로 되돌렸습니다." : "되돌렸습니다.");
+              render();
+            });
+      render();
+    };
+    el.onclick = finish;
+    // 단추처럼 키보드로도 눌린다
+    el.onkeydown = event => {
+      if (event.key === "Enter" || event.key === " ") finish(event);
+    };
+  });
+  list.querySelectorAll(".bandpick").forEach(el => el.onclick = () => {
+    const band = BANDS.find(b => b.key === el.dataset.band);
+    const members = el.dataset.band === "done" ? done
+                  : el.dataset.band === "pinned" ? pinned
+                  : buckets.get(band.key);
+    const allPicked = members.every(d => chosen.has(d.id));
+    members.forEach(d => allPicked ? chosen.delete(d.id) : chosen.add(d.id));
+    render();
+  });
+  _bindPickedBar();
+}
+
+// 캘린더에 넣을 수 있는 날짜(기한/행사일)가 있는가.
+function hasCalendarDate(d){ return !!(d.deadline || d.event_date); }
+
+function _pickedBar(){
+  const picked = state.docs.filter(d => chosen.has(d.id));
+  if (!picked.length) return "";
+  const allDone = picked.every(d => d.done);
+  const datedCount = picked.filter(hasCalendarDate).length;
+  const onScreen = visible();
+  const allPicked = onScreen.length > 0 && onScreen.every(d => chosen.has(d.id));
+  const more = allPicked ? "" : `<button id="bulkall">모두 고르기</button>`;
+  const ics = datedCount ? `<button id="bulkics">일정 내보내기</button>` : "";
+  return `<div class="picked">
+    <b>${picked.length}건</b> 골랐습니다
+    <span class="act">
+      <button class="go" id="bulkdone">${allDone ? "처리 취소" : "처리 완료"}</button>
+      ${ics}
+      ${more}
+      <button id="bulkclear">해제</button>
+    </span></div>`;
+}
+
+function _bindPickedBar(){
+  const go = $("bulkdone");
+  if (!go) return;
+  go.onclick = async () => {
+    const picked = state.docs.filter(d => chosen.has(d.id));
+    const done = !picked.every(d => d.done);
+    const members = picked.flatMap(d => (d.members || [{id:d.id}]).map(m => m.id));
+    go.textContent = "처리 중";
+    state = await call("/api/done", {members, done});
+    chosen.clear();
+    // 여러 건을 한꺼번에 옮긴 것일수록 잘못 눌렀을 때 되돌리기가 급하다
+    toast(done ? `${picked.length}건을 처리함으로 옮겼습니다.`
+               : `${picked.length}건을 다시 처리할 것으로 옮겼습니다.`,
+          async () => {
+            state = await call("/api/done", {members, done: !done});
+            toast(`${picked.length}건을 되돌렸습니다.`);
+            render();
+          });
+    render();
+  };
+  $("bulkclear").onclick = () => { chosen.clear(); render(); };
+  const all = $("bulkall");
+  if (all) all.onclick = () => { visible().forEach(d => chosen.add(d.id)); render(); };
+  const ics = $("bulkics");
+  if (ics) ics.onclick = exportPickedIcs;
+}
+
+// 고른 공문 가운데 날짜가 있는 것만 캘린더 파일로 내보낸다. 진행 중인
+// 것만 대상이며, 파일에는 공문 제목과 요약이 그대로 담긴다.
+function exportPickedIcs(){
+  const picked = state.docs.filter(d => chosen.has(d.id) && !d.done && hasCalendarDate(d));
+  if (!picked.length){
+    toast("고른 것 중에 캘린더에 넣을 날짜가 있는 진행 중 공문이 없습니다.");
+    return;
+  }
+  const ok = confirm(
+    `고른 공문 ${picked.length}건을 캘린더 파일(.ics)로 내보냅니다.\n` +
+    `\n` +
+    `⚠ 민감한 정보가 포함된 내용은 반드시 제외하세요.\n` +
+    `공문 제목과 요약이 파일에 그대로 담깁니다. 이 파일을 구글 캘린더\n` +
+    `같은 외부 서비스에 올리면 그 내용이 그대로 전송되며, 민감한 정보\n` +
+    `업로드로 생기는 책임은 전적으로 사용자에게 있습니다.\n` +
+    `\n` +
+    `같은 파일을 같은 달력에 다시 가져오면 새 일정이 생기지 않고 기존\n` +
+    `일정이 갱신됩니다. 여러 달력에 나눠 넣으면 중복될 수 있습니다.\n` +
+    `\n` +
+    `계속할까요?`
+  );
+  if (!ok) return;
+  const ids = picked.map(d => d.id).join(",");
+  location.href = "/api/calendar.ics?ids=" + encodeURIComponent(ids);
+  toast("내려받은 파일을 캘린더에서 가져오세요.");
+}
+
+function row(doc){
+  const cats = state.categories;
+  let badge, cls = "dday";
+  if (doc.days_left === null){
+    badge = doc.event_date ? doc.event_date.slice(5).replace("-",".") : "—";
+    cls += " none";
+  } else if (doc.days_left < 0){ badge = `D+${-doc.days_left}`; cls += " warn"; }
+  else if (doc.days_left === 0){ badge = "오늘"; cls += " warn"; }
+  else { badge = `D-${doc.days_left}`; if (doc.days_left <= 3) cls += " warn"; }
+
+  const meta = [doc.sender, doc.receipt_number || _shortFile(doc)]
+    .filter(Boolean).join(" · ");
+  // 파일 이름이 길면 _shortFile 이 잘라 놓는다. 들여다볼 때 쓸 전문을 함께 둔다.
+  const metaFull = [doc.sender, doc.receipt_number || doc.filename]
+    .filter(Boolean).join(" · ");
+  const low = doc.confidence === "낮음" && !doc.edited ? `<span class="flag">확인 필요</span>` : "";
+  const pin = doc.pinned ? `<span class="clip">📌 고정</span>` : "";
+  const box = doc.archived ? `<span class="clip">${esc(doc.archived)} 보관</span>` : "";
+  const clip = doc.attachments ? `<span class="clip">첨부 ${doc.attachments}</span>` : "";
+  // 왼쪽 세로줄과 유형표가 같은 색을 쓰도록 한 곳에서 넘긴다
+  const tone = CAT_COLOR[doc.category];
+  return `<button class="row ${doc.done?"done":""}" data-id="${doc.id}"
+      style="border-left-color:${tone}" aria-selected="${selected===doc.id}">
+    <span class="pick" role="checkbox" aria-checked="${chosen.has(doc.id)}"
+      title="고르기"></span>
+    <span class="${cls}">${badge}</span>
+    <span class="rowtext"><span class="name" data-peek>${esc(doc.title || doc.filename)}</span>${pin}${low}${clip}${box}
+      <span class="meta" data-peek data-full="${esc(metaFull)}">${esc(meta)}</span></span>
+    <span class="kind" style="--kind-ink:${tone}">${cats[doc.category]}</span>
+    <span class="done-btn" role="button" tabindex="0"
+      aria-pressed="${doc.done}" title="${doc.done ? "다시 처리할 것으로" : "처리했음으로"}"
+      >${doc.done ? "↩" : "✓"}</span>
+  </button>`;
+}
+
+function dateLabel(iso){
+  const [y, m, d] = iso.split("-").map(Number);
+  const weekday = "일월화수목금토"[new Date(y, m - 1, d).getDay()];
+  const thisYear = Number(state.today.slice(0, 4));
+  const head = y === thisYear ? "" : `${y}. `;
+  return `${head}${m}. ${d}.(${weekday})`;
+}
+
+function _shortFile(doc){
+  const stem = doc.filename.replace(/\.[^.]+$/, "");
+  if (stem.replace(/\s/g,"") === (doc.title||"").replace(/\s/g,"")) return "";
+  return stem.length > 40 ? stem.slice(0, 39) + "…" + "." + doc.filename.split(".").pop()
+                          : doc.filename;
+}
+
+const esc = s => (s||"").replace(/[<>&"]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
+
+/* ------------------------------------------------------------- 상세 */
+let chosen = new Set();
+let plainView = false;
+let viewingFile = null;    // 묶음 안에서 지금 보고 있는 파일
+
+function _filelist(members, doc){
+  if (members.length < 2) return "";
+  const rows = members.map(m => {
+    const tag = m.role === "본문" ? `<span class="tag body">본문</span>`
+              : m.role ? `<span class="tag">${esc(m.role)}</span>` : "";
+    // 읽지 못한 것과, 읽을 필요가 없는 것(zip·png 같은 첨부)은 다르다.
+    // 뒤엣것에 빨간 "못 읽음" 을 달면 뭔가 잘못된 줄 아신다.
+    const note = m.error ? `<span class="bad">못 읽음</span>`
+               : m.readable === false ? `<span class="plain">미리보기 없음</span>` : "";
+    return `<button class="filerow" data-file="${m.id}" aria-pressed="${viewingFile===m.id}">
+      ${tag}<span class="nm" data-peek>${esc(m.filename)}</span>${note}</button>`;
+  }).join("");
+  return `<div class="field"><label><span>이 공문에 딸린 문서 ${members.length}개</span><span class="hint">눌러서 미리보기 · 두 번 눌러 열기</span></label>
+    <div class="files">${rows}</div></div>`;
+}
+
+function _preview(doc, label){
+  const name = (doc.filename || "").toLowerCase();
+  const isPdf = name.endsWith(".pdf");
+  const isHwp = name.endsWith(".hwp") || name.endsWith(".hwpx");
+  const short = label && label.length > 34 ? label.slice(0, 33) + "…" : label;
+  const heading = short ? `미리보기 — ${esc(short)}` : "본문 미리보기";
+  const id = encodeURIComponent(doc.id);
+
+  // PDF 는 브라우저에 딸린 뷰어가 전 쪽을 그대로 그린다. 우리가 글자를
+  // 뽑아 늘어놓는 것보다 실제 문서에 가깝다.
+  if (isPdf && !plainView){
+    return `<div class="field"><label><span>${heading}</span>
+      <button class="viewswitch" id="viewswitch">글자만 보기</button></label>
+      <iframe class="pdfview" src="/api/file?id=${id}" title="${esc(heading)}"></iframe></div>`;
+  }
+
+  if (!doc.body && !doc.body_html && !isHwp){
+    if (doc.readable === false){
+      return `<div class="field"><label><span>미리보기</span></label>
+        <div class="empty">이 형식은 프로그램이 열어 보지 못합니다.
+        아래 "보고 있는 파일 열기" 로 여시면 됩니다.</div></div>`;
+    }
+    return "";
+  }
+
+  const hasForm = !!doc.body_html;
+  const formatted = hasForm && !plainView;
+  const inner = formatted ? doc.body_html : esc((doc.body||"").slice(0,4000));
+
+  // 한글 문서는 저장할 때 첫 쪽 그림을 파일 안에 함께 넣어 둔다. 표와
+  // 서식이 그대로 보이므로 글자만 뽑는 것보다 낫다. 그림이 없는 문서면
+  // onerror 가 .noimg 를 붙여 아래 글자 미리보기가 대신 나온다.
+  if (isHwp && !plainView){
+    return `<div class="field"><label><span>${heading}</span>
+      <button class="viewswitch" id="viewswitch">글자만 보기</button></label>
+      <div class="pagewrap">
+        <img class="pageview" src="/api/preview-image?id=${id}" alt="${esc(heading)}"
+             onerror="this.parentNode.classList.add('noimg')">
+        <div class="pagefallback body ${formatted ? "formatted" : ""}">${inner}</div>
+      </div>
+      <div class="pagenote">그림을 누르면 크게 볼 수 있습니다. 문서에 저장된 첫 쪽이며, 전체는 아래 "보고 있는 파일 열기" 로 보세요.</div></div>`;
+  }
+
+  const toggle = hasForm || isHwp || isPdf
+    ? `<button class="viewswitch" id="viewswitch">${plainView ? "문서 그대로 보기" : "글자만 보기"}</button>` : "";
+  return `<div class="field"><label><span>${heading}</span>${toggle}</label>
+    <div class="body ${formatted ? "formatted" : ""}">${inner}</div></div>`;
+}
+
+async function openPanel(id, fileId){
+  selected = id;
+  const doc = await call("/api/doc?id=" + encodeURIComponent(id));
+  const group = state.docs.find(d => d.id === id) || doc;
+  const members = group.members || [{id:doc.id, filename:doc.filename, role:"", error:doc.error}];
+  viewingFile = fileId || (members.find(m => m.id === id) ? id : members[0].id);
+  const shown = viewingFile === doc.id ? doc
+              : await call("/api/doc?id=" + encodeURIComponent(viewingFile));
+  const cats = state.categories;
+
+  const chips = state.order.map(key =>
+    `<button class="chip" data-cat="${key}" aria-pressed="${doc.category===key}">${cats[key]}</button>`).join("");
+  const chips2 = (doc.all_dates||[]).map(d =>
+    `<button class="datechip" data-date="${d}" aria-pressed="${doc.deadline===d}"
+       title="누르면 기한으로 정해집니다">${dateLabel(d)}</button>`).join("");
+  const dates = chips2 || "<span class='meta'>본문에서 날짜를 찾지 못했습니다.</span>";
+
+  $("panel").innerHTML = `
+    <button class="close" id="closebtn" aria-label="닫기">×</button>
+    <h2>${esc(doc.title || doc.filename)}</h2>
+    <p class="sub">${esc([doc.sender, doc.doc_number, doc.receipt_number,
+       members.length > 1 ? "" : _shortFile(doc)].filter(Boolean).join(" · "))}</p>
+    ${doc.error ? `<div class="warnbox">이 파일은 읽지 못했습니다. ${esc(doc.error)}</div>` : ""}
+    <div class="field"><label><span>업무 유형</span></label><div class="chips" id="chips">${chips}</div></div>
+    <div class="field"><label><span>기한</span></label>
+      <input type="date" id="deadline" value="${doc.deadline||""}">
+      ${doc.deadline_context ? `<p class="quote">${esc(doc.deadline_context)}</p>` : ""}
+    </div>
+    <div class="field"><label><span>본문에 나온 날짜</span>${doc.all_dates && doc.all_dates.length
+      ? '<span class="hint">누르면 기한이 됩니다</span>' : ''}</label>
+      <div class="dates">${dates}</div></div>
+    <div class="field"><label><span>메모</span></label><textarea id="memo" placeholder="처리 방법이나 담당자를 적어 두세요">${esc(doc.memo)}</textarea></div>
+    ${_filelist(members, doc)}
+    ${_preview(shown, members.length > 1 ? shown.filename : "")}
+    <div class="actions">
+      <button class="primary" id="openfile">${members.length > 1 ? "보고 있는 파일 열기" : "원본 파일 열기"}</button>
+      <button class="ghost" id="openfolder">파일 위치 열기</button>
+      <button class="ghost" id="togglepin">${group.pinned ? "고정 해제" : "맨 위에 고정"}</button>
+      <button class="ghost" id="toggledone">${group.done ? "처리 취소" : "처리 완료"}</button>
+    </div>`;
+
+  $("panel").classList.add("open");
+  $("panel").setAttribute("aria-hidden","false");
+  $("scrim").classList.add("open");
+
+  $("closebtn").onclick = closePanel;
+  $("chips").querySelectorAll(".chip").forEach(chip => chip.onclick = async () => {
+    state = await call("/api/category", {id, category:chip.dataset.cat});
+    toast("유형을 바꿨습니다."); render(); openPanel(id);
+  });
+  $("deadline").onchange = async e => {
+    state = await call("/api/deadline", {id, deadline:e.target.value});
+    toast("기한을 바꿨습니다."); render();
+  };
+  $("memo").onblur = async e => {
+    state = await call("/api/memo", {id, memo:e.target.value}); render();
+  };
+  $("panel").querySelectorAll(".filerow").forEach(row => {
+    row.onclick = () => openPanel(id, row.dataset.file);
+    // 두 번 누르면 그 파일이 연결된 프로그램으로 바로 열린다. 첨부 서식은
+    // 미리보기로 훑고 끝나는 게 아니라 열어서 고쳐 내는 일이 대부분이다.
+    row.ondblclick = async () => {
+      const res = await call("/api/open?id=" + encodeURIComponent(row.dataset.file));
+      if (res.error) toast(res.error);
+      else toast("파일을 엽니다.");
+    };
+  });
+  $("panel").querySelectorAll(".datechip").forEach(chip => chip.onclick = async () => {
+    const picked = chip.dataset.date;
+    const value = picked === doc.deadline ? "" : picked;
+    state = await call("/api/deadline", {id, deadline: value});
+    toast(value ? `기한을 ${dateLabel(value)}로 정했습니다.` : "기한을 지웠습니다.");
+    render(); openPanel(id);
+  });
+
+  const switcher = $("viewswitch");
+  // 보고 있던 파일을 그대로 둔 채 보기 방식만 바꾼다. viewingFile 을 넘기지
+  // 않으면 첨부를 보다가 토글했을 때 본문으로 튕겨 나간다.
+  if (switcher) switcher.onclick = () => { plainView = !plainView; openPanel(id, viewingFile); };
+  $("openfile").onclick = async () => {
+    const res = await call("/api/open?id=" + encodeURIComponent(viewingFile || id));
+    if (res.error) toast(res.error);
+  };
+  // 그 파일이 든 폴더를 파일을 고른 채로 연다. 첨부가 여럿일 때
+  // "이게 어디 있더라" 를 바로 알 수 있다.
+  $("openfolder").onclick = async () => {
+    const res = await call("/api/reveal?id=" + encodeURIComponent(viewingFile || id));
+    if (res.error) toast(res.error);
+  };
+  $("togglepin").onclick = async () => {
+    state = await call("/api/pin", {id, pinned:!group.pinned, members:members.map(m => m.id)});
+    toast(group.pinned ? "고정을 해제했습니다." : "목록 맨 위에 고정했습니다.");
+    render(); openPanel(id);
+  };
+  $("toggledone").onclick = async () => {
+    const was = group.done;
+    const ids = members.map(m => m.id);
+    state = await call("/api/done", {id, done: !was, members: ids});
+    toast(was ? "다시 처리할 것으로 옮겼습니다." : "처리함으로 옮겼습니다.",
+          async () => {
+            state = await call("/api/done", {id, done: was, members: ids});
+            toast(was ? "처리함으로 되돌렸습니다." : "되돌렸습니다.");
+            render();
+          });
+    render(); closePanel();
+  };
+  renderList();
+}
+
+function closePanel(){
+  selected = null;
+  $("panel").classList.remove("open");
+  $("panel").setAttribute("aria-hidden","true");
+  $("scrim").classList.remove("open");
+  renderList();
+}
+
+/* ------------------------------------------------------------- 도구 */
+async function scan(force){
+  const btn = force ? $("deep") : $("rescan");
+  btn.dataset.busy = "1";
+  const before = btn.textContent;
+  btn.textContent = "읽는 중";
+  state = await call("/api/scan" + (force ? "?force=1" : ""));
+  btn.dataset.busy = "0"; btn.textContent = before;
+  const r = state.report || {};
+  toast(`새로 ${r.added||0}건 · 그대로 ${r.skipped||0}건${r.failed ? ` · 못 읽음 ${r.failed}건` : ""}`);
+  render();
+}
+
+$("rescan").onclick = () => scan(false);
+$("deep").onclick = () => scan(true);
+$("scrim").onclick = closePanel;
+$("tidy").onclick = async () => {
+  const preview = await call("/api/organize?preview=1");
+  const plan = preview.organized || {};
+  if (!plan.moved && !plan.trashed){
+    toast("정리할 파일이 없습니다.");
+    return;
+  }
+  const names = (plan.folders || []).slice(0, 6).map(n => "  · " + n).join("\n");
+  const more = (plan.folders || []).length > 6 ? `\n  … 그 밖에 ${plan.folders.length - 6}개` : "";
+  // 같은 공문을 또 내려받은 경우를 미리 알린다. 휴지통은 되돌릴 수 있지만
+  // 파일이 없어지는 일이므로 누르기 전에 몇 건인지 보여야 한다.
+  const dup = plan.trashed
+    ? `\n\n이미 정리해 둔 것과 똑같은 파일 ${plan.trashed}개는 휴지통으로 보냅니다.\n(휴지통에서 되돌릴 수 있습니다)` : "";
+  const rev = plan.renamed
+    ? `\n\n이름은 같은데 내용이 다른 ${plan.renamed}개는 뒤에 (2) 를 붙여 함께 넣습니다.` : "";
+  const head = plan.moved ? `파일 ${plan.moved}개를 공문별 폴더로 옮깁니다.\n\n${names}${more}`
+                          : "옮길 파일은 없습니다.";
+  if (!confirm(`${head}${dup}${rev}\n\n계속할까요?`)) return;
+  $("tidy").dataset.busy = "1";
+  state = await call("/api/organize");
+  $("tidy").dataset.busy = "0";
+  const done = state.organized || {};
+  const extra = [done.trashed ? `같은 파일 ${done.trashed}개는 휴지통으로` : "",
+                 done.renamed ? `${done.renamed}개는 (2) 를 붙여` : ""].filter(Boolean).join(", ");
+  toast(`${done.moved}개를 ${(done.folders||[]).length}개 폴더로 옮겼습니다.`
+        + (extra ? ` ${extra} 보냈습니다.` : ""));
+  // 못 옮긴 것이 있으면 반드시 말한다. 조용히 넘어가면 "눌러도 아무 일이
+  // 없다" 가 되어, 쓰는 분이 같은 자리에서 계속 막힌다.
+  const stuck = done.problems || [];
+  if (stuck.length) alert("아래 파일은 그대로 두었습니다.\n\n" + stuck.join("\n"));
+  render();
+};
+$("archive").onclick = async () => {
+  const preview = await call("/api/archive?preview=1");
+  const plan = preview.archived_report || {};
+  if (!plan.moved){
+    toast(plan.no_date ? `날짜를 알 수 없는 ${plan.no_date}건은 옮길 수 없습니다.`
+                       : "정리할 완료 공문이 없습니다.");
+    return;
+  }
+  const lines = (plan.plans || []).slice(0, 8).map(([m, n]) => `  ${m}  ${n}`).join("\n");
+  const more = (plan.plans || []).length > 8 ? `\n  … 그 밖에 ${plan.plans.length - 8}건` : "";
+  const note = plan.no_date ? `\n\n날짜를 알 수 없는 ${plan.no_date}건은 그대로 둡니다.` : "";
+  if (!confirm(`처리 완료한 공문 ${plan.plans.length}건을 마감 월 폴더로 옮깁니다.\n\n`
+    + `옮겨 갈 곳: ${plan.base}\n\n${lines}${more}${note}\n\n계속할까요?`)) return;
+  $("archive").dataset.busy = "1";
+  state = await call("/api/archive");
+  $("archive").dataset.busy = "0";
+  const done = state.archived_report || {};
+  toast(`${done.moved}개 파일을 월별 폴더로 옮겼습니다.`);
+  render();
+};
+$("folder").onclick = () => call("/api/open-folder");
+$("setfolder").onclick = async () => {
+  const next = prompt("공문을 모아 두는 폴더 경로를 적어 주세요", state.folder);
+  if (!next) return;
+  const res = await call("/api/folder", {folder:next});
+  if (res.error) return toast(res.error);
+  state = res; toast("폴더를 바꿨습니다."); render();
+};
+// 미리보기 그림을 크게 보기. 패널을 다시 그릴 때마다 걸어 주지 않아도
+// 되게 문서 전체에서 한 번만 받는다.
+function openZoom(src){
+  const box = $("zoom");
+  box.querySelector("img").src = src;
+  box.hidden = false;
+}
+function closeZoom(){
+  const box = $("zoom");
+  box.hidden = true;
+  box.querySelector("img").removeAttribute("src");   // 큰 그림을 붙들고 있지 않는다
+}
+document.addEventListener("click", e => {
+  const shot = e.target.closest(".pageview");
+  if (shot) return openZoom(shot.src);
+  if (e.target.closest(".zoomview")) closeZoom();
+});
+document.addEventListener("keydown", e => {
+  // 방금 한 처리를 되돌린다. 알림이 사라진 뒤에는 걸리는 것이 없으므로
+  // 아무 일도 일어나지 않는다.
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && _undo){
+    const typing = e.target.matches("input, textarea");
+    if (!typing){ e.preventDefault(); runUndo(); return; }
+  }
+  if (e.key !== "Escape") return;
+  // 크게 보기가 떠 있으면 그것부터 닫는다. 함께 닫히면 공문을 다시
+  // 찾아 들어가야 한다.
+  if (!$("zoom").hidden) return closeZoom();
+  closePanel();
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+
+(async () => {
+  state = await call("/api/state");
+  render();
+  setInterval(poll, POLL_MS);
+})();
+</script>
+</body>
+</html>
