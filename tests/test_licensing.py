@@ -74,6 +74,18 @@ class Files(unittest.TestCase):
         self.assertIn("SIL OPEN FONT LICENSE Version 1.1", text)
         self.assertIn("Kil Hyung-jin", text)          # 저작권 표시
 
+    def test_every_dependency_ships_its_full_licence(self):
+        """MIT·BSD 는 주소만 적어서는 안 되고 전문을 함께 둬야 한다."""
+        required = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+        names = [re.split(r"[><=!\[]", line.strip())[0].strip()
+                 for line in required.splitlines() if line.strip()]
+        # openpyxl 이 끌고 오는 꾸러미와 파이썬 자체도 exe 에 들어간다
+        for name in names + ["et_xmlfile", "Python", "Python-components"]:
+            with self.subTest(name=name):
+                path = ROOT / "licenses" / f"{name}.txt"
+                self.assertTrue(path.is_file(), f"licenses/{name}.txt 가 없습니다")
+                self.assertRegex(path.read_text(encoding="utf-8"), r"(?i)copyright")
+
     def test_font_file_is_really_a_font(self):
         data = (ROOT / "assets" / "PretendardVariable.woff2").read_bytes()
         self.assertEqual(data[:4], b"wOF2")
@@ -88,14 +100,19 @@ class Bundling(unittest.TestCase):
 
     def test_exe_bundles_font_and_notices(self):
         for name in ("PretendardVariable.woff2", "Pretendard-OFL.txt",
-                     "LICENSE", "THIRD-PARTY-NOTICES.txt"):
+                     "LICENSE", "THIRD-PARTY-NOTICES.txt", '("licenses", "licenses")'):
             with self.subTest(name=name):
                 self.assertIn(name, self.spec,
                               f"build.spec 의 datas 에 {name} 을 넣어 주세요")
 
+    def test_unlisted_optional_packages_stay_out(self):
+        """빌드 PC 에 깔려 있다는 이유로 고지 없는 꾸러미가 섞이면 안 된다."""
+        self.assertIn('"fontTools"', self.spec)
+
     def test_installer_puts_notices_where_users_can_read_them(self):
         """exe 안에만 있으면 이용자가 열어 볼 수 없다."""
-        for name in ("LICENSE", "THIRD-PARTY-NOTICES.txt", "Pretendard-OFL.txt"):
+        for name in ("LICENSE", "THIRD-PARTY-NOTICES.txt", "Pretendard-OFL.txt",
+                     r"licenses\*"):
             with self.subTest(name=name):
                 self.assertIn(name, self.iss,
                               f"installer.iss 의 [Files] 에 {name} 을 넣어 주세요")

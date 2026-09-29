@@ -20,7 +20,9 @@ a = Analysis(
            # OFL 1.1 은 함께 배포할 때 라이선스 전문을 같이 두도록 요구한다.
            ("assets/PretendardVariable.woff2", "assets"),
            ("assets/Pretendard-OFL.txt", "assets"),
-           ("LICENSE", "."), ("THIRD-PARTY-NOTICES.txt", ".")],
+           ("LICENSE", "."), ("THIRD-PARTY-NOTICES.txt", "."),
+           # MIT·BSD 는 배포물에 라이선스 전문을 함께 두라고 요구한다
+           ("licenses", "licenses")],
     hiddenimports=["olefile", "pypdf", "openpyxl", "xlrd", "app", "store",
                    "classify", "extract", "hwpx_view", "updater", "organize",
                    "changelog", "compare", "screen_compare",
@@ -28,7 +30,11 @@ a = Analysis(
     hookspath=[],
     runtime_hooks=[],
     # 쓰지 않는 큰 덩어리를 빼서 파일 크기를 줄인다
-    excludes=["numpy", "pandas", "matplotlib", "scipy", "PIL", "pytest", "playwright"],
+    # fontTools 는 pypdf 가 글꼴을 "써 넣을" 때만 쓰는 선택 꾸러미다. 우리는
+    # 읽기만 하므로 필요 없는데, 빌드하는 PC 에 깔려 있으면 딸려 들어가
+    # 고지 목록에 없는 저작물이 exe 에 섞인다.
+    excludes=["numpy", "pandas", "matplotlib", "scipy", "PIL", "pytest", "playwright",
+              "fontTools"],
     noarchive=False,
 )
 

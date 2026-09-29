@@ -43,35 +43,66 @@
    pypdf  6.16.2
       쓰임    : PDF 읽기
       라이선스: BSD-3-Clause
-      만든이  : Mathieu Fenniak <biziqe@mathieu.fenniak.net>
+      저작권  : Copyright (c) 2006-2008, Mathieu Fenniak 외
       출처    : https://github.com/py-pdf/pypdf
+      전문    : licenses/pypdf.txt
 
    olefile  0.47
       쓰임    : 옛 한글(.hwp) 파일 구조 읽기
-      라이선스: BSD
-      만든이  : Philippe Lagadec
-      출처    : https://www.decalage.info/python/olefileio
+      라이선스: BSD-2-Clause (일부 PIL 라이선스)
+      저작권  : Copyright (c) 2005-2023 Philippe Lagadec
+      출처    : https://github.com/decalage2/olefile
+      전문    : licenses/olefile.txt
 
    openpyxl  3.1.5
       쓰임    : 엑셀(.xlsx) 읽기
       라이선스: MIT
-      만든이  : See AUTHORS
+      저작권  : Copyright (c) 2010 openpyxl
       출처    : https://openpyxl.readthedocs.io
+      전문    : licenses/openpyxl.txt
 
-   xlrd  2.0.x
+   et_xmlfile  2.0.0
+      쓰임    : openpyxl 이 엑셀 파일을 다룰 때 함께 쓰는 꾸러미
+      라이선스: MIT
+      저작권  : Copyright (c) 2010 openpyxl
+      출처    : https://foss.heptapod.net/openpyxl/et_xmlfile
+      전문    : licenses/et_xmlfile.txt
+
+   xlrd  2.0.2
       쓰임    : 옛 엑셀(.xls) 읽기
       라이선스: BSD
+      저작권  : Portions copyright (c) 2005-2009, Stephen John Machin,
+                Lingfo Pty Ltd / Copyright (c) 2001 David Giffin
       출처    : https://github.com/python-excel/xlrd
+      전문    : licenses/xlrd.txt
 
-   위 꾸러미는 모두 MIT 또는 BSD 계열입니다. 두 라이선스 모두 자유로운
-   사용·수정·재배포를 허용하며, 배포물에 저작권 표시를 남길 것과 무보증
-   조항을 요구합니다. 이 문서가 그 표시를 대신합니다. 각 꾸러미의
-   라이선스 전문은 위 출처 주소에서 보실 수 있습니다.
+      This product includes software developed by
+      David Giffin <david@giffin.org>.
+
+   위 꾸러미는 모두 MIT 또는 BSD 계열로, 자유로운 사용·수정·재배포를
+   허용하되 배포물에 저작권 표시와 라이선스 전문을 함께 두도록 요구합니다.
+   전문은 같은 폴더의 licenses 폴더에 그대로 실었습니다.
 
 ============================================================
-4. 파이썬 표준 라이브러리
+4. 파이썬과 함께 들어가는 구성 요소
 ============================================================
-   Python Software Foundation License. https://www.python.org/
+   실행 파일(exe)에는 파이썬 자체와, 파이썬이 쓰는 아래 구성 요소가
+   함께 들어 있습니다. 모두 자유로운 재배포를 허용합니다.
+
+   Python 3.13        Python Software Foundation License 2
+   OpenSSL 3          Apache License 2.0   (인터넷 암호화 연결, 업데이트 확인에 씀)
+   Tcl/Tk 8.6         Tcl/Tk License (BSD 계열, 바탕화면 작은 창)
+   libffi             MIT
+   bzip2              BSD 계열
+   Microsoft Visual C++ 런타임   파이썬 배포 조건에 따름
+      → 전문: licenses/Python.txt (파이썬 설치본에 딸린 LICENSE.txt 그대로)
+
+   expat              MIT            (XML 읽기)
+   libmpdec           BSD-2-Clause   (decimal 계산)
+   zlib               zlib License   (압축 풀기)
+      → 전문: licenses/Python-components.txt
+
+   SQLite(기록 저장)와 xz(압축)는 퍼블릭 도메인이라 표시 의무가 없습니다.
 
 ============================================================
 5. 아이콘
