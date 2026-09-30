@@ -1,0 +1,82 @@
+# 설치 파일을 만들어 GitHub 릴리스에 올린다.
+#
+# app.py 의 VERSION 을 올리고 main 에 push 하면, 그 버전의 태그(v1.2.3)가
+# 아직 없을 때만 빌드해서 릴리스를 만든다. 버전을 안 올린 push 는 건너뛴다.
+# Actions 탭에서 "Run workflow" 로 직접 돌릴 수도 있다.
+#
+# 릴리스에는 두 파일을 함께 올린다.
+#   gongmun-submisson.exe        — 자동 업데이트가 내려받는 실행 파일
+#   gongmun-submisson-setup.exe  — 처음 설치하는 사람이 받는 설치 파일
+
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: 버전 읽기
+        id: ver
+        run: |
+          $ver = python version_of.py
+          "version=$ver" >> $env:GITHUB_OUTPUT
+          gh release view "v$ver" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "v$ver 릴리스가 이미 있어 건너뜁니다."
+            "exists=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "exists=false" >> $env:GITHUB_OUTPUT
+          }
+          exit 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: 패키지 설치
+        if: steps.ver.outputs.exists == 'false'
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: 테스트
+        if: steps.ver.outputs.exists == 'false'
+        run: python -m unittest discover -s tests -t .
+
+      - name: exe 만들기
+        if: steps.ver.outputs.exists == 'false'
+        run: pyinstaller --clean --noconfirm build.spec
+
+      - name: 설치 파일 만들기
+        if: steps.ver.outputs.exists == 'false'
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: 릴리스 올리기
+        if: steps.ver.outputs.exists == 'false'
+        run: |
+          $tag = "v${{ steps.ver.outputs.version }}"
+          gh release create $tag `
+            dist/gongmun-submisson.exe `
+            dist/gongmun-submisson-setup.exe `
+            --title "공문정리함제출 $tag" `
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
